@@ -4,13 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+import certifi
+from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.models import HandwritingSubmission, SubmissionResponse, HandwritingAnalytics
+from app.models import HandwritingSubmission, SubmissionResponse
 from app.analytics import compute_stroke_analytics
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(title="Math Handwriting API")
 
-# CORS for Next.js frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -19,29 +24,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MongoDB connection
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-client = AsyncIOMotorClient(MONGODB_URL)
-db = client.math_handwriting
+# MongoDB Atlas connection
+MONGODB_URL = os.getenv("MONGODB_URL")
+if not MONGODB_URL:
+    raise ValueError("MONGODB_URL not set")
 
+client = AsyncIOMotorClient(
+    MONGODB_URL,
+    tls=True,
+    serverSelectionTimeoutMS=15000
+)
+
+db = client["math"]
 
 @app.on_event("startup")
 async def startup():
-    # Create indexes
-    await db.problems.create_index("session_id")
-    await db.problems.create_index("problem.problem_type")
-    await db.problems.create_index("created_at")
-    print(f"Connected to MongoDB at {MONGODB_URL}")
+    try:
+        # Test connection
+        await client.admin.command('ping')
+        print("Connected to MongoDB Atlas!")
+        
+        # Create indexes
+        await db.problems.create_index("session_id")
+        await db.problems.create_index("problem.problem_type")
+        await db.problems.create_index("created_at")
+        print("Indexes created")
+    except Exception as e:
+        print(f"MongoDB connection failed: {e}")
+        raise
 
 
 @app.post("/api/submit", response_model=SubmissionResponse)
 async def submit_handwriting(data: HandwritingSubmission):
     """Store handwriting stroke data with computed analytics"""
     try:
-        # Compute analytics
         analytics = compute_stroke_analytics(data.strokes)
         
-        # Prepare document
         document = {
             "session_id": data.session_id,
             "sequence": await get_next_sequence(data.session_id),
@@ -62,8 +80,9 @@ async def submit_handwriting(data: HandwritingSubmission):
             "created_at": datetime.utcnow()
         }
         
-        # Insert to MongoDB
         result = await db.problems.insert_one(document)
+        
+        print(f"SAVED: Problem {result.inserted_id} | Session {data.session_id[:8]}... | Strokes: {analytics.stroke_count}")
         
         return SubmissionResponse(
             status="success",
@@ -73,6 +92,7 @@ async def submit_handwriting(data: HandwritingSubmission):
         )
         
     except Exception as e:
+        print(f"FAILED: {e}")  # ADD ERROR LOG
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -138,7 +158,17 @@ async def export_dataset(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "database": "connected"}
+    """Check database connection"""
+    try:
+        await client.admin.command('ping')
+        count = await db.problems.count_documents({})
+        return {
+            "status": "ok",
+            "database": "connected",
+            "total_problems": count
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 if __name__ == "__main__":

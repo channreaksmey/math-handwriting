@@ -9,6 +9,7 @@ export async function submitHandwriting(data: any) {
   });
 
   if (!response.ok) {
+    const error = await response.text();
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
@@ -17,5 +18,6 @@ export async function submitHandwriting(data: any) {
 
 export async function getSessionStats(sessionId: string) {
   const response = await fetch(`${API_URL}/api/stats/${sessionId}`);
+  if (!response.ok) throw new Error('Failed to fetch stats');
   return response.json();
 }

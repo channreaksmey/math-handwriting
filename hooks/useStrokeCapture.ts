@@ -1,4 +1,4 @@
-// hooks/useStrokeCapture.ts - SIMPLIFIED VERSION
+// hooks/useStrokeCapture.ts
 'use client';
 
 import { useRef, useCallback, useState } from 'react';
@@ -13,28 +13,11 @@ export function useStrokeCapture() {
   const currentStrokeRef = useRef<Point[]>([]);
   const sessionStartRef = useRef<number>(Date.now());
 
-  const initCanvas = useCallback((canvas: HTMLCanvasElement) => {
-    canvasRef.current = canvas;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    contextRef.current = ctx;
-    
-    // Simple: match canvas size to display size exactly (no DPR scaling)
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#2c3e50';
-  }, []);
-
-  // Simple coordinate mapping - no DPR complications
   const capturePoint = (e: PointerEvent): Point => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0, timestamp: Date.now(), pressure: 0.5 };
     
+    const rect = canvas.getBoundingClientRect();
     return {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
@@ -46,7 +29,8 @@ export function useStrokeCapture() {
   const startStroke = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = contextRef.current;
+    if (!canvas || !ctx) return;
 
     (e.target as Element).setPointerCapture(e.pointerId);
     
@@ -54,12 +38,10 @@ export function useStrokeCapture() {
     const point = capturePoint(e.nativeEvent);
     currentStrokeRef.current = [point];
     
-    const ctx = contextRef.current;
-    if (ctx) {
-      ctx.beginPath();
-      ctx.moveTo(point.x, point.y);
-      ctx.lineWidth = 3 * point.pressure;
-    }
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+    ctx.lineWidth = 3 * point.pressure;
+    ctx.strokeStyle = '#2c3e50';
   }, []);
 
   const continueStroke = useCallback((e: React.PointerEvent) => {
@@ -84,7 +66,10 @@ export function useStrokeCapture() {
     setIsDrawing(false);
     
     const points = currentStrokeRef.current;
-    if (points.length < 2) return;
+    if (points.length < 2) {
+      currentStrokeRef.current = [];
+      return;
+    }
 
     const newStroke: Stroke = {
       id: crypto.randomUUID(),
@@ -107,16 +92,13 @@ export function useStrokeCapture() {
     setStrokes([]);
   }, []);
 
-  const exportSession = useCallback((): HandwritingSession => {
-    const canvas = canvasRef.current;
-    return {
-      strokes,
-      canvasWidth: canvas?.width || 0,
-      canvasHeight: canvas?.height || 0,
-      deviceType: navigator.userAgent,
-      startTime: sessionStartRef.current,
-    };
-  }, [strokes]);
+  const exportSession = useCallback((): HandwritingSession => ({
+    strokes,
+    canvasWidth: canvasRef.current?.width || 0,
+    canvasHeight: canvasRef.current?.height || 0,
+    deviceType: navigator.userAgent,
+    startTime: sessionStartRef.current,
+  }), [strokes]);
 
   const replayStrokes = useCallback(() => {
     const canvas = canvasRef.current;
@@ -142,7 +124,7 @@ export function useStrokeCapture() {
 
   return {
     canvasRef,
-    initCanvas,
+    contextRef,  // Parent will set this up
     startStroke,
     continueStroke,
     endStroke,
