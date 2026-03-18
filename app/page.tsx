@@ -208,11 +208,11 @@ export default function PlayPage() {
               </div>
               
               <p className="mt-3 text-xs text-gray-500 text-center">
-                {difficulty === 1 && "Single digit addition"}
-                {difficulty === 2 && "Double digit, no carry"}
-                {difficulty === 3 && "Addition with carry"}
-                {difficulty === 4 && "Simple multiplication"}
-                {difficulty === 5 && "Multi-step problems"}
+                {difficulty === 1 && "Single-digit +, -, *, /"}
+                {difficulty === 2 && "2-digit + and - (with/without carry or borrow)"}
+                {difficulty === 3 && "Multiply/divide: single-digit and 2-digit by 1-digit"}
+                {difficulty === 4 && "Multi-step addition and subtraction"}
+                {difficulty === 5 && "Multi-step multiplication and division"}
               </p>
             </div>
 
