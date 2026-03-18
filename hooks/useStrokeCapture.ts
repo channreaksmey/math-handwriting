@@ -13,6 +13,29 @@ export function useStrokeCapture() {
   const currentStrokeRef = useRef<Point[]>([]);
   const sessionStartRef = useRef<number>(Date.now());
 
+  const drawStroke = useCallback((ctx: CanvasRenderingContext2D, stroke: Stroke) => {
+    ctx.beginPath();
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    stroke.points.forEach((point, i) => {
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
+  }, []);
+
+  const redrawAll = useCallback((strokesToDraw: Stroke[]) => {
+    const canvas = canvasRef.current;
+    const ctx = contextRef.current;
+    if (!canvas || !ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    strokesToDraw.forEach((stroke) => drawStroke(ctx, stroke));
+  }, [drawStroke]);
+
   const capturePoint = (e: PointerEvent): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0, timestamp: Date.now(), pressure: 0.5 };
@@ -90,7 +113,17 @@ export function useStrokeCapture() {
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setStrokes([]);
+    currentStrokeRef.current = [];
   }, []);
+
+  const undoStroke = useCallback(() => {
+    setStrokes((prev) => {
+      if (prev.length === 0) return prev;
+      const next = prev.slice(0, -1);
+      redrawAll(next);
+      return next;
+    });
+  }, [redrawAll]);
 
   const exportSession = useCallback((): HandwritingSession => ({
     strokes,
@@ -106,29 +139,22 @@ export function useStrokeCapture() {
     if (!canvas || !ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     strokes.forEach((stroke, index) => {
       setTimeout(() => {
-        ctx.beginPath();
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = stroke.brushSize;
-        
-        stroke.points.forEach((point: Point, i: number) => {
-          if (i === 0) ctx.moveTo(point.x, point.y);
-          else ctx.lineTo(point.x, point.y);
-        });
-        ctx.stroke();
+        drawStroke(ctx, stroke);
       }, index * 100);
     });
-  }, [strokes]);
+  }, [strokes, drawStroke]);
 
   return {
     canvasRef,
-    contextRef,  // Parent will set this up
+    contextRef,
     startStroke,
     continueStroke,
     endStroke,
     clearCanvas,
+    undoStroke,
     exportSession,
     replayStrokes,
     strokes,

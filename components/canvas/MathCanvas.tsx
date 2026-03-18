@@ -9,27 +9,31 @@ interface MathCanvasProps {
   problemText?: string;
   disabled?: boolean;
   onClearRef?: MutableRefObject<() => void>;
+  fillPage?: boolean;
 }
 
 export default function MathCanvas({ 
   onSubmit, 
   problemText, 
   disabled, 
-  onClearRef 
+  onClearRef,
+  fillPage = false
 }: MathCanvasProps) {
   const initializedRef = useRef(false);
   
   const {
-    canvasRef,
-    contextRef,
-    startStroke,
-    continueStroke,
-    endStroke,
-    clearCanvas,
-    exportSession,
-    replayStrokes,
-    strokes,
-  } = useStrokeCapture();
+  canvasRef,
+  contextRef,
+  startStroke,
+  continueStroke,
+  endStroke,
+  clearCanvas,
+  undoStroke,
+  exportSession,
+  replayStrokes,
+  strokes,
+  isDrawing,
+} = useStrokeCapture();
 
   // Setup canvas once
   useEffect(() => {
@@ -66,7 +70,7 @@ export default function MathCanvas({
   };
 
   return (
-    <div className={`flex flex-col items-center gap-6 w-full max-w-2xl ${disabled ? 'opacity-70' : ''}`}>
+    <div className={'flex flex-col items-center w-full ' + (fillPage ? 'h-full max-w-none gap-4' : 'max-w-2xl gap-6') + (disabled ? ' opacity-70' : '')}>
       {problemText && (
         <div className="relative">
           <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-2xl blur opacity-30" />
@@ -78,7 +82,8 @@ export default function MathCanvas({
         </div>
       )}
 
-      <div className="relative w-full aspect-[4/3] bg-white rounded-2xl shadow-2xl border-4 border-indigo-100 overflow-hidden touch-none">
+      <div
+  className={'relative w-full bg-white rounded-2xl shadow-2xl border-4 border-indigo-100 overflow-hidden touch-none ' + (fillPage ? 'flex-1 min-h-0' : 'aspect-[4/3]')}>
         <div 
           className="absolute inset-0 opacity-5 pointer-events-none"
           style={{
@@ -119,6 +124,17 @@ export default function MathCanvas({
       </div>
 
       <div className="flex flex-wrap justify-center gap-3 w-full">
+        <button
+          onClick={undoStroke}
+          disabled={disabled || strokes.length === 0 || isDrawing}
+          className="group flex items-center gap-2 px-5 py-3 bg-white hover:bg-amber-50 disabled:opacity-40 disabled:hover:bg-white text-gray-700 hover:text-amber-700 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200"
+        >
+          <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11a4 4 0 110 8h-1m-10-8l4-4m-4 4l4 4" />
+          </svg>
+          Undo
+        </button>
+
         <button
           onClick={clearCanvas}
           disabled={disabled || strokes.length === 0}

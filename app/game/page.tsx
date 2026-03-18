@@ -9,19 +9,21 @@ import { Stroke } from '@/types/strokes';
 import { submitHandwriting } from '@/lib/api';
 
 interface SessionConfig {
-  id: string;
-  difficulty: Difficulty;
-  problemCount: number;
-  studentName: string;
-  notes: string;
-  startTime: number;
+    id: string;
+    difficulty: Difficulty;
+    problemCount: number;
+    studentName: string;
+    notes: string;
+    startTime: number;
 }
 
 interface CompletedProblem {
-  problem: MathProblem;
-  strokes: Stroke[];
-  duration: number;
-  submittedToBackend: boolean;
+    problem: MathProblem;
+    strokes: Stroke[];
+    duration: number;
+    canvasWidth: number;
+    canvasHeight: number;
+    submittedToBackend: boolean;
 }
 
 export default function GamePage() {
@@ -58,10 +60,12 @@ export default function GamePage() {
       : 0;
 
     const completedProblem: CompletedProblem = {
-      problem: currentProblem,
-      strokes: sessionData.strokes,
-      duration,
-      submittedToBackend: false,
+        problem: currentProblem,
+        strokes: sessionData.strokes,
+        duration,
+        canvasWidth: sessionData.canvasWidth,
+        canvasHeight: sessionData.canvasHeight,
+        submittedToBackend: false,
     };
 
     // Submit to backend
@@ -149,9 +153,9 @@ export default function GamePage() {
   const progress = ((currentIndex) / config.problemCount) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b border-gray-200 shrink-0">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -171,29 +175,29 @@ export default function GamePage() {
             onClick={() => setShowExitConfirm(true)}
             className="text-sm text-gray-500 hover:text-red-600 transition"
           >
-            End Early
+            End Session
           </button>
         </div>
       </header>
 
-      {/* Main Game Area */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10">
-          <MathCanvas
+    {/* Main Game Area */}
+    <main className="flex-1 min-h-0 w-full px-4 py-4">
+        <div className="h-full w-full">
+        <MathCanvas
             problemText={`${currentProblem.expression} = ?`}
             onSubmit={handleSubmit}
             disabled={isSubmitting}
             onClearRef={canvasClearRef}
-          />
+            fillPage
+        />
         </div>
 
-        {/* Encouragement */}
-        <p className="text-center text-gray-500 mt-6 text-sm">
-          {currentIndex === 0 && "Great! Show your work on the canvas above."}
-          {currentIndex > 0 && currentIndex < config.problemCount - 1 && "Keep going! You're doing great."}
-          {currentIndex === config.problemCount - 1 && "Last one! Finish strong."}
-        </p>
-      </main>
+  <p className="text-center text-gray-500 mt-4 text-sm">
+    {currentIndex === 0 && "Great! Show your work on the canvas above."}
+    {currentIndex > 0 && currentIndex < config.problemCount - 1 && "Keep going! You're doing great."}
+    {currentIndex === config.problemCount - 1 && "Last one! Finish strong."}
+  </p>
+</main>
 
       {/* Exit Confirmation Modal */}
       {showExitConfirm && (

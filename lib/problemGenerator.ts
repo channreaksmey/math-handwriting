@@ -99,7 +99,7 @@ function generateLevel1(id: string, allowedOps: Operation[]): MathProblem {
     const b = randInt(1, 9);
     return {
       id,
-      expression: `${a} * ${b}`,
+      expression: `${a} ${opSymbol('*')} ${b}`,
       operator: '*',
       operands: [a, b],
       expectedAnswer: a * b,
@@ -113,7 +113,7 @@ function generateLevel1(id: string, allowedOps: Operation[]): MathProblem {
     const b = randInt(1, 9);
     return {
       id,
-      expression: `${a} ${opSymbol('*')} ${b}`,
+      expression: `${a} ${opSymbol('/')} ${b}`,
       operator: '*',
       operands: [a, b],
       expectedAnswer: a * b,

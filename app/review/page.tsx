@@ -19,6 +19,8 @@ interface CompletedProblem {
   problem: MathProblem;
   strokes: Stroke[];
   duration: number;
+  canvasWidth: number;
+  canvasHeight: number;
   submittedToBackend: boolean;
   teacherNotes?: string;
   correct?: boolean;
@@ -221,7 +223,7 @@ export default function ReviewPage() {
 
                 {/* Canvas Preview (Static) */}
                 <div className="aspect-[4/3] bg-gray-100 relative">
-                  <StaticCanvas strokes={results.problems[selectedProblem].strokes} />
+                  <StaticCanvas strokes={results.problems[selectedProblem].strokes} sourceWidth={results.problems[selectedProblem].canvasWidth} sourceHeight={results.problems[selectedProblem].canvasHeight} />
                 </div>
 
                 {/* Evaluation */}
@@ -301,36 +303,52 @@ export default function ReviewPage() {
 }
 
 // Static Canvas Component for Review
-function StaticCanvas({ strokes }: { strokes: Stroke[] }) {
+function StaticCanvas({ strokes, sourceWidth, sourceHeight }: { strokes: Stroke[]; sourceWidth: number, sourceHeight: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !strokes.length) return;
+    if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    canvas.width = Math.floor(rect.width);
+    canvas.height = Math.floor(rect.height);
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!strokes.length) return;
+
+    const padding = 16;
+    const baseW = Math.max(1, sourceWidth || 1);
+    const baseH = Math.max(1, sourceHeight || 1);
+
+    const scale = Math.min(
+      (canvas.width - padding * 2) / baseW,
+      (canvas.height - padding * 2) / baseH
+    );
+
+    const offsetX = (canvas.width - baseW * scale) / 2;
+    const offsetY = (canvas.height - baseH * scale) / 2;
 
     strokes.forEach(stroke => {
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = stroke.brushSize;
+      ctx.lineWidth = Math.min(6, Math.max(1, stroke.brushSize * scale));
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
       stroke.points.forEach((point, i) => {
-        if (i === 0) ctx.moveTo(point.x, point.y);
-        else ctx.lineTo(point.x, point.y);
+        const x = point.x * scale + offsetX;
+        const y = point.y * scale + offsetY;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       });
+
       ctx.stroke();
     });
-  }, [strokes]);
+  }, [strokes, sourceWidth, sourceHeight]);
 
   return (
     <canvas
