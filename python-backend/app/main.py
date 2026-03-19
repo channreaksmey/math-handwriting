@@ -35,7 +35,10 @@ allow_headers=["*"],
 # MongoDB Atlas connection
 MONGODB_URL = os.getenv("MONGODB_URL")
 
-client = None
+client = AsyncIOMotorClient(
+MONGODB_URL,
+serverSelectionTimeoutMS=15000
+)
 db = None
 if MONGODB_URL:
     client = AsyncIOMotorClient(
