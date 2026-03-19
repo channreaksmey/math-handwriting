@@ -15,11 +15,6 @@ load_dotenv()
 
 app = FastAPI(title="Math Handwriting API")
 
-# MongoDB Atlas connection
-MONGODB_URL = os.getenv("MONGODB_URL")
-if not MONGODB_URL:
-    raise ValueError("MONGODB_URL not set")
-
 def parse_cors_origins(raw: str | None) -> list[str]:
     if not raw:
         return ["http://localhost:3000", "http://127.0.0.1:3000"]
@@ -37,41 +32,54 @@ allow_methods=["*"],
 allow_headers=["*"],
 )
 
-client = AsyncIOMotorClient(
-    MONGODB_URL,
-    tls=True,
-    tlsCAFile=certifi.where(),
-    serverSelectionTimeoutMS=15000
-)
+# MongoDB Atlas connection
+MONGODB_URL = os.getenv("MONGODB_URL")
 
-db = client["math"]
+client = None
+db = None
+if MONGODB_URL:
+    client = AsyncIOMotorClient(
+        MONGODB_URL,
+        tls=True,
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=3000
+    )
+    db = client["math"]
+else:
+    print("WARN: MONGODB_URL is not set")
+
 
 @app.on_event("startup")
 async def startup():
+    if client is None:
+        return
     try:
-        # Test connection
-        await client.admin.command('ping')
-        print("Connected to MongoDB Atlas!")
-        
-        # Create indexes
+        await client.admin.command("ping")
         await db.problems.create_index("session_id")
         await db.problems.create_index("problem.problem_type")
         await db.problems.create_index("created_at")
-        print("Indexes created")
+        print("MongoDB connected and indexes ensured")
     except Exception as e:
-        print(f"MongoDB connection failed: {e}")
-        raise
+        print(f"MongoDB startup warning: {e}")
+        # Do not raise in serverless startup
+
+def require_db():
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    return db
 
 
 @app.post("/api/submit", response_model=SubmissionResponse)
 async def submit_handwriting(data: HandwritingSubmission):
     """Store handwriting stroke data with computed analytics"""
+    database = require_db()
+
     try:
         analytics = compute_stroke_analytics(data.strokes)
         
         document = {
             "session_id": data.session_id,
-            "sequence": await get_next_sequence(data.session_id),
+            "sequence": await get_next_sequence(database, data.session_id),
             "problem": data.problem.dict(),
             "handwriting": {
                 "strokes": [s.dict() for s in data.strokes],
@@ -89,7 +97,7 @@ async def submit_handwriting(data: HandwritingSubmission):
             "created_at": datetime.utcnow()
         }
         
-        result = await db.problems.insert_one(document)
+        result = await database.problems.insert_one(document)
         
         print(f"SAVED: Problem {result.inserted_id} | Session {data.session_id[:8]}... | Strokes: {analytics.stroke_count}")
         
@@ -105,9 +113,9 @@ async def submit_handwriting(data: HandwritingSubmission):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def get_next_sequence(session_id: str) -> int:
+async def get_next_sequence(database, session_id: str) -> int:
     """Get next problem sequence number for a session"""
-    last_problem = await db.problems.find_one(
+    last_problem = await database.problems.find_one(
         {"session_id": session_id},
         sort=[("sequence", -1)]
     )
@@ -117,6 +125,8 @@ async def get_next_sequence(session_id: str) -> int:
 @app.get("/api/stats/{session_id}")
 async def get_session_stats(session_id: str):
     """Get statistics for a session"""
+    database = require_db()
+
     pipeline = [
         {"$match": {"session_id": session_id}},
         {"$group": {
@@ -128,7 +138,7 @@ async def get_session_stats(session_id: str):
         }}
     ]
     
-    result = await db.problems.aggregate(pipeline).to_list(1)
+    result = await database.problems.aggregate(pipeline).to_list(1)
     return result[0] if result else {}
 
 
@@ -139,13 +149,15 @@ async def export_dataset(
     has_labels: bool = False
 ):
     """Export dataset for ML training"""
+    database = require_db()
+
     query = {}
     if problem_type:
         query["problem.problem_type"] = problem_type
     if has_labels:
         query["labels.strategy"] = {"$ne": None}
     
-    cursor = db.problems.find(query).limit(limit)
+    cursor = database.problems.find(query).limit(limit)
     
     problems = []
     async for doc in cursor:
@@ -168,6 +180,8 @@ async def export_dataset(
 @app.get("/health")
 async def health_check():
     """Check database connection"""
+    if client is None or db is None:
+        return {"status": "error", "message": "Database not configured"}
     try:
         await client.admin.command('ping')
         count = await db.problems.count_documents({})
