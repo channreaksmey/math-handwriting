@@ -122,7 +122,7 @@ export default function Home() {
             Traditional math assessments only capture the final answer. Math Writer goes deeper—we record the entire problem-solving process. This gives educators and researchers unprecedented insight into student thinking patterns, strategies, and learning behaviors.
           </p>
           <p className="text-lg text-gray-700 leading-relaxed">
-            Whether you're analyzing learning strategies, researching cognitive patterns, or helping students reflect on their work, Math Writer provides the detailed process data you need.
+            Whether you are analyzing learning strategies, researching cognitive patterns, or helping students reflect on their work, Math Writer provides the detailed process data you need.
           </p>
         </div>
       </section>

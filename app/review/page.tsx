@@ -34,18 +34,24 @@ interface SessionResults {
 
 export default function ReviewPage() {
   const router = useRouter();
-  const [results, setResults] = useState<SessionResults | null>(null);
   const [selectedProblem, setSelectedProblem] = useState<number | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+
+  const [results, setResults] = useState<SessionResults | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = sessionStorage.getItem('sessionResults');
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored) as SessionResults;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('sessionResults');
-    if (!stored) {
-      router.push('/setup');
-      return;
-    }
-    setResults(JSON.parse(stored));
-  }, [router]);
+    if (!results) router.push('/setup');
+  }, [results, router]);
+
+
 
   const handleNoteChange = (index: number, notes: string) => {
     if (!results) return;

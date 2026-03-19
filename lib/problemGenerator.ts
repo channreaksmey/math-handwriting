@@ -313,7 +313,7 @@ function generateLevel5(id: string, allowedOps: Operation[]): MathProblem {
   // Level 5: multi-step multiplication/divison with integer result
   for (let i = 0; i< 100; i ++) {
     const op1 = pickOperation(['*', '/'], allowedOps);
-    const op2: Operation = op1 === '*' ? '/' : '*';
+    // const op2: Operation = op1 === '*' ? '/' : '*';
 
     const a = randInt(10, 99); // include two-digit numbers
     const b = randInt(2, 9);

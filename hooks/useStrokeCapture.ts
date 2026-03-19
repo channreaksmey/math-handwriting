@@ -1,7 +1,7 @@
 // hooks/useStrokeCapture.ts
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Point, Stroke, HandwritingSession } from '@/types/strokes';
 
 export function useStrokeCapture() {
@@ -11,7 +11,9 @@ export function useStrokeCapture() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentStrokeRef = useRef<Point[]>([]);
-  const sessionStartRef = useRef<number>(Date.now());
+  const sessionStartRef = useRef<number>(0);
+
+  useEffect(() => {sessionStartRef.current = Date.now();}, []);
 
   const drawStroke = useCallback((ctx: CanvasRenderingContext2D, stroke: Stroke) => {
     ctx.beginPath();

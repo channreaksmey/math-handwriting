@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 import certifi
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.models import HandwritingSubmission, SubmissionResponse
 from app.analytics import compute_stroke_analytics
@@ -16,22 +15,32 @@ load_dotenv()
 
 app = FastAPI(title="Math Handwriting API")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # MongoDB Atlas connection
 MONGODB_URL = os.getenv("MONGODB_URL")
 if not MONGODB_URL:
     raise ValueError("MONGODB_URL not set")
 
+def parse_cors_origins(raw: str | None) -> list[str]:
+    if not raw:
+        return ["http://localhost:3000", "http://127.0.0.1:3000"]
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+cors_origins = parse_cors_origins(os.getenv("CORS_ALLOW_ORIGINS"))
+cors_origin_regex = os.getenv("CORS_ALLOW_ORIGIN_REGEX")
+
+app.add_middleware(
+CORSMiddleware,
+allow_origins=cors_origins,
+allow_origin_regex=cors_origin_regex,
+allow_credentials=True,
+allow_methods=[""],
+allow_headers=[""],
+)
+
 client = AsyncIOMotorClient(
     MONGODB_URL,
     tls=True,
+    tlsCAFile=certifi.where(),
     serverSelectionTimeoutMS=15000
 )
 

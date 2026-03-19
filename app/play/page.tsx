@@ -2,9 +2,10 @@
 'use client';
 
 import MathCanvas from '@/components/canvas/MathCanvas';
+import { HandwritingSession } from '@/types/strokes';
 
 export default function PlayPage() {
-  const handleSubmit = (sessionData: any) => {
+  const handleSubmit = (sessionData: HandwritingSession) => {
     alert(`Captured ${sessionData.strokes.length} strokes! Check console.`);
   };
 

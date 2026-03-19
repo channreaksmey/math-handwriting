@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import MathCanvas from '@/components/canvas/MathCanvas';
 import { generateProblem, MathProblem, Difficulty } from '@/lib/problemGenerator';
-import { Stroke } from '@/types/strokes';
+import { Stroke, HandwritingSession } from '@/types/strokes';
 import { submitHandwriting } from '@/lib/api';
 
 interface SessionConfig {
@@ -28,29 +28,32 @@ interface CompletedProblem {
 
 export default function GamePage() {
   const router = useRouter();
-  const [config, setConfig] = useState<SessionConfig | null>(null);
-  const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null);
+
+  const [config] = useState<SessionConfig | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = sessionStorage.getItem('sessionConfig');
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored) as SessionConfig;
+    } catch {
+      return null;
+    }
+  });
+
+  const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(() => config ? generateProblem(config.difficulty) : null);
   const [completed, setCompleted] = useState<CompletedProblem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  
+
   const canvasClearRef = useRef<() => void>(() => {});
 
   // Load config on mount
   useEffect(() => {
-    const stored = sessionStorage.getItem('sessionConfig');
-    if (!stored) {
-      router.push('/setup');
-      return;
-    }
-    
-    const parsed = JSON.parse(stored);
-    setConfig(parsed);
-    setCurrentProblem(generateProblem(parsed.difficulty));
-  }, [router]);
+    if (!config) router.push('/setup');
+  }, [config, router]);
 
-  const handleSubmit = useCallback(async (sessionData: any) => {
+  const handleSubmit = useCallback(async (sessionData: HandwritingSession) => {
     if (!config || !currentProblem) return;
     
     setIsSubmitting(true);
@@ -205,7 +208,7 @@ export default function GamePage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-lg font-bold text-gray-800 mb-2">End Session Early?</h3>
             <p className="text-gray-600 mb-4">
-              You've completed {completed.length} of {config.problemCount} problems. 
+              You have completed {completed.length} of {config.problemCount} problems. 
               {completed.length > 0 ? " You can still review what's been done." : " No data will be saved."}
             </p>
             <div className="flex gap-3">

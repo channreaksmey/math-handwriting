@@ -3,9 +3,10 @@
 
 import { useEffect, useRef, MutableRefObject } from 'react';
 import { useStrokeCapture } from '@/hooks/useStrokeCapture';
+import { HandwritingSession } from '@/types/strokes';
 
 interface MathCanvasProps {
-  onSubmit?: (sessionData: any) => void;
+  onSubmit?: (sessionData: HandwritingSession) => void;
   problemText?: string;
   disabled?: boolean;
   onClearRef?: MutableRefObject<() => void>;
