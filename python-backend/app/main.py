@@ -33,8 +33,8 @@ CORSMiddleware,
 allow_origins=cors_origins,
 allow_origin_regex=cors_origin_regex,
 allow_credentials=True,
-allow_methods=[""],
-allow_headers=[""],
+allow_methods=["*"],
+allow_headers=["*"],
 )
 
 client = AsyncIOMotorClient(
