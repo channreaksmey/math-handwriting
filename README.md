@@ -12,6 +12,19 @@ This project is a math handwriting data collection platform for capturing how st
 * Stores submissions in MongoDB with analytics metadata.
 * Provides review/export workflows for collected session data.
 
+## Project Structure
+
+This project is organized into two separate applications:
+
+```
+math-handwriting/
+├── frontend/          # Next.js frontend application
+├── backend/           # Python FastAPI backend
+└── README.md          # This file
+```
+
+See `frontend/README.md` and `backend/README.md` for specific setup instructions.
+
 # Tech Stack
 
 * Frontend: Next.js, React, TypeScript, Tailwind.
@@ -21,36 +34,46 @@ This project is a math handwriting data collection platform for capturing how st
 
 # Frontend (Next.js)
 
-* Main app entry and landing experience: page.tsx
+Located in `frontend/`
+
+* Main app entry and landing experience: `frontend/app/page.tsx`
 * Session flow pages:
-    * Setup: `app/page.tsx`
-    * Game (capture loop): `app/game/page.tsx`
-    * Review: `app/review/page.tsx`
+    * Setup: `frontend/app/setup/page.tsx`
+    * Game (capture loop): `frontend/app/game/page.tsx`
+    * Review: `frontend/app/review/page.tsx`
 * Canvas component and stroke capture hook:
-    * Canvas UI: `components/canvas/MathCanvas.tsx`
-    * Stroke logic: `hooks/useStrokeCapture.ts`
-* API client used by frontend: `lib/api.ts`
-* Problem generation logic: `lib/problemGenerator.ts`
+    * Canvas UI: `frontend/components/canvas/MathCanvas.tsx`
+    * Stroke logic: `frontend/hooks/useStrokeCapture.ts`
+* API client used by frontend: `frontend/lib/api.ts`
+* Problem generation logic: `frontend/lib/problemGenerator.ts`
 
 # Backend (FastAPI)
 
-* API and DB integration: `python-backend/app/main.py`
-* Data models: `python-backend/app/models.py` *not started*
-* Analytics calculations: `python-backend/app/analytics.py` *not started*
-* Vercel entrypoint for serverless deployment: `python-backend/api/index.py`
-* Vercel routing config: `python-backend/vercel.json`
+Located in `backend/`
+
+* API and DB integration: `backend/app/main.py`
+* Data models: `backend/app/models.py`
+* Analytics calculations: `backend/app/analytics.py`
+* Vercel entrypoint for serverless deployment: `backend/api/index.py`
+* Vercel routing config: `backend/vercel.json`
 
 ## Quick Start
 
 ```bash
-cd python-backend
+# Start the backend first
+cd backend
 python run.py
-# then
+
+# In another terminal, start the frontend
+cd frontend
+npm install  # if needed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the frontend.
 
-## Deployed Site 
+The backend API will be available at [http://localhost:8000](http://localhost:8000).
+
+## Deployed Site
 
 [https://math-handwriting-frontend.vercel.app/](https://math-handwriting-frontend.vercel.app/)

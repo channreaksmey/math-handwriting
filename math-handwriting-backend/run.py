@@ -1,4 +1,4 @@
-# python-backend/run.py
+# backend/run.py
 import os
 import uvicorn
 

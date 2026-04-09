@@ -1,4 +1,4 @@
-# python-backend/app/analytics.py
+# backend/app/analytics.py
 import numpy as np
 from typing import List, Dict, Any
 from app.models import Stroke, HandwritingAnalytics
