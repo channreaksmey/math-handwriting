@@ -52,3 +52,6 @@ htmlcov/
 
 # tongyi qwen
 .qwen
+
+# docker
+docker-compose.*
