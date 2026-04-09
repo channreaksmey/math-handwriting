@@ -16,16 +16,23 @@ This is the backend API for the Math Handwriting Data Collection System. It's bu
 
 ```
 backend/
-├── app/                    # Main application package
-│   ├── main.py            # FastAPI app and API routes
-│   ├── models.py          # Pydantic data models
-│   └── analytics.py       # Stroke analytics computations
-├── api/                    # Vercel serverless functions
-│   └── index.py           # Vercel entrypoint
-├── requirements.txt       # Python dependencies
-├── run.py                 # Development server runner
-├── vercel.json            # Vercel deployment configuration
-└── .env                   # Environment variables (if any)
+├── app/                        # Main application package
+│   ├── main.py                # FastAPI app setup and middleware
+│   ├── config.py              # Environment config and database connection
+│   ├── models.py              # Pydantic data models
+│   ├── analytics.py           # Stroke analytics computations
+│   └── routes/                # API route handlers
+│       ├── __init__.py
+│       ├── submit.py          # POST /api/submit
+│       ├── stats.py           # GET /api/stats/{session_id}
+│       ├── export.py          # GET /api/export
+│       └── health.py          # GET /health
+├── api/                        # Vercel serverless functions
+│   └── index.py               # Vercel entrypoint
+├── requirements.txt           # Python dependencies
+├── run.py                     # Development server runner
+├── vercel.json                # Vercel deployment configuration
+└── .env                       # Environment variables (development)
 ```
 
 ## API Endpoints
