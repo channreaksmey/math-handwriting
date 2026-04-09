@@ -59,13 +59,61 @@ Located in `backend/`
 
 ## Quick Start
 
-```bash
-# Start the backend first
-cd backend
-python run.py
+### Option 1: Docker Compose (Recommended for Local Development)
 
-# In another terminal, start the frontend
-cd frontend
+This project includes a Docker Compose configuration for easy local development with MongoDB, backend, and frontend.
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+
+**Start all services:**
+
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+This will start:
+- **MongoDB** on `localhost:27017`
+- **Backend** on `http://localhost:8000`
+- **Frontend** on `http://localhost:3000`
+
+**View logs:**
+
+```bash
+docker-compose -f docker-compose.dev.yml logs -f
+```
+
+**Stop all services:**
+
+```bash
+docker-compose -f docker-compose.dev.yml down
+```
+
+**Stop and remove MongoDB data:**
+
+```bash
+docker-compose -f docker-compose.dev.yml down -v
+```
+
+### Option 2: Manual Setup
+
+**Prerequisites:**
+- Python 3.11+
+- Node.js 18+
+- MongoDB (local or Atlas)
+
+**Start the backend:**
+
+```bash
+cd math-handwriting-backend
+pip install -r requirements.txt
+python run.py
+```
+
+**In another terminal, start the frontend:**
+
+```bash
+cd math-handwriting-frontend
 npm install  # if needed
 npm run dev
 ```
@@ -73,6 +121,26 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the frontend.
 
 The backend API will be available at [http://localhost:8000](http://localhost:8000).
+
+## Configuration
+
+### Backend Environment Variables
+
+Copy `.env.example` to `.env.devnev` and configure:
+
+```bash
+cd math-handwriting-backend
+cp .env.example .env.devnev
+```
+
+Key variables:
+- `MONGODB_URL`: MongoDB connection string (leave empty to run without database)
+- `CORS_ALLOW_ORIGINS`: Allowed origins for CORS (default: `http://localhost:3000`)
+- `UVICORN_RELOAD`: Enable auto-reload in development (`true`/`false`)
+
+### Frontend Environment Variables
+
+The frontend uses `NEXT_PUBLIC_API_URL` to connect to the backend (default: `http://localhost:8000`).
 
 ## Deployed Site
 
