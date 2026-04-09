@@ -10,44 +10,61 @@ import certifi
 from app.models import HandwritingSubmission, SubmissionResponse
 from app.analytics import compute_stroke_analytics
 
-# Load environment variables
+# Load environment variables from .env file (development only)
+# In production, these should be set via platform environment variables
+# (Vercel env vars, Railway env vars, Docker env vars, etc.)
 load_dotenv()
 
 app = FastAPI(title="Math Handwriting API")
+
 
 def parse_cors_origins(raw: str | None) -> list[str]:
     if not raw:
         return ["http://localhost:3000", "http://127.0.0.1:3000"]
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
+
 cors_origins = parse_cors_origins(os.getenv("CORS_ALLOW_ORIGINS"))
 cors_origin_regex = os.getenv("CORS_ALLOW_ORIGIN_REGEX")
 
 app.add_middleware(
-CORSMiddleware,
-allow_origins=cors_origins,
-allow_origin_regex=cors_origin_regex,
-allow_credentials=True,
-allow_methods=["*"],
-allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# MongoDB Atlas connection
+# MongoDB connection
 MONGODB_URL = os.getenv("MONGODB_URL")
 
-client = AsyncIOMotorClient(
-MONGODB_URL,
-serverSelectionTimeoutMS=15000
-)
+client = None
 db = None
+
 if MONGODB_URL:
-    client = AsyncIOMotorClient(
-        MONGODB_URL,
-        tls=True,
-        tlsCAFile=certifi.where(),
-        serverSelectionTimeoutMS=3000
-    )
-    db = client["math"]
+    # Check if it's a local MongoDB (localhost or 127.0.0.1)
+    is_local_mongo = "localhost" in MONGODB_URL or "127.0.0.1" in MONGODB_URL
+
+    try:
+        if is_local_mongo:
+            # Local MongoDB doesn't need SSL
+            client = AsyncIOMotorClient(
+                MONGODB_URL,
+                serverSelectionTimeoutMS=5000
+            )
+        else:
+            # MongoDB Atlas requires SSL
+            client = AsyncIOMotorClient(
+                MONGODB_URL,
+                tls=True,
+                tlsCAFile=certifi.where(),
+                serverSelectionTimeoutMS=5000
+            )
+
+        db = client["math"]
+    except Exception as e:
+        print(f"MongoDB connection error: {e}")
 else:
     print("WARN: MONGODB_URL is not set")
 
@@ -66,6 +83,7 @@ async def startup():
         print(f"MongoDB startup warning: {e}")
         # Do not raise in serverless startup
 
+
 def require_db():
     if db is None:
         raise HTTPException(status_code=503, detail="Database not configured")
@@ -79,7 +97,7 @@ async def submit_handwriting(data: HandwritingSubmission):
 
     try:
         analytics = compute_stroke_analytics(data.strokes)
-        
+
         document = {
             "session_id": data.session_id,
             "sequence": await get_next_sequence(database, data.session_id),
@@ -99,18 +117,19 @@ async def submit_handwriting(data: HandwritingSubmission):
             },
             "created_at": datetime.utcnow()
         }
-        
+
         result = await database.problems.insert_one(document)
-        
-        print(f"SAVED: Problem {result.inserted_id} | Session {data.session_id[:8]}... | Strokes: {analytics.stroke_count}")
-        
+
+        print(
+            f"SAVED: Problem {result.inserted_id} | Session {data.session_id[:8]}... | Strokes: {analytics.stroke_count}")
+
         return SubmissionResponse(
             status="success",
             problem_id=str(result.inserted_id),
             analytics=analytics,
             message="Handwriting data stored successfully"
         )
-        
+
     except Exception as e:
         print(f"FAILED: {e}")  # ADD ERROR LOG
         raise HTTPException(status_code=500, detail=str(e))
@@ -140,7 +159,7 @@ async def get_session_stats(session_id: str):
             "avg_speed": {"$avg": "$handwriting.analytics.avg_speed_pixels_per_ms"}
         }}
     ]
-    
+
     result = await database.problems.aggregate(pipeline).to_list(1)
     return result[0] if result else {}
 
@@ -159,9 +178,9 @@ async def export_dataset(
         query["problem.problem_type"] = problem_type
     if has_labels:
         query["labels.strategy"] = {"$ne": None}
-    
+
     cursor = database.problems.find(query).limit(limit)
-    
+
     problems = []
     async for doc in cursor:
         problems.append({
@@ -173,7 +192,7 @@ async def export_dataset(
             "strategy_label": doc["labels"].get("strategy"),
             "created_at": doc["created_at"].isoformat()
         })
-    
+
     return {
         "count": len(problems),
         "problems": problems

@@ -105,12 +105,20 @@ pip install -r requirements.txt
 
 ### Environment Variables
 
-Create a `.env` file in this directory with:
+The API uses environment variables for configuration. In **development**, these are loaded from a `.env` file. In **production**, set them via your platform's environment variable system.
 
-```env
-MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
-CORS_ALLOW_ORIGINS=http://localhost:3000
+**Development:**
+```bash
+# Copy the example .env file and customize it
+cp .env.example .env.local  # .env.local is gitignored
 ```
+
+**Production:**
+Set environment variables in your deployment platform:
+- **Vercel**: Settings → Environment Variables
+- **Railway**: Variables tab
+- **Render**: Dashboard → Environment
+- **Docker**: `docker-compose.yml` or `docker run -e`
 
 **Required:**
 - `MONGODB_URL` - MongoDB connection string
